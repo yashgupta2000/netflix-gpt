@@ -1,11 +1,85 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import Header from './Header'
+import { checkValidate } from '../utils/validate';
+import { auth } from '../utils/firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { useNavigate } from 'react-router-dom'
+import { useDispatch } from 'react-redux';
+import { addUser } from '../utils/userSlice';
+
 
 const Login = () => {
     const [isSignInForm, setIsSignInForem] = useState(true);
+    const [errorMessage, setErrorMessage] = useState();
+
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+
     const toggleInForm = () => {
         setIsSignInForem(!isSignInForm);
     }
+    const name = useRef(null);
+    const email = useRef(null);
+    const password = useRef(null);
+
+    const handleBtnClick = () => {
+        const emailValue = email.current ? email.current.value : "";
+        const passwordValue = password.current ? password.current.value : "";
+        const nameValue = name.current ? name.current.value : "";
+
+        const message = checkValidate(emailValue, passwordValue);
+        setErrorMessage(message);
+
+        if (message) return;
+        if (!isSignInForm) {
+            createUserWithEmailAndPassword(auth, emailValue, passwordValue, nameValue)
+                .then((userCredential) => {
+                    // Signed up 
+                    const user = userCredential.user;
+                    updateProfile(user, {
+                        displayName: nameValue, photoURL: "https://media.licdn.com/dms/image/D5603AQFMNzatN4oA0Q/profile-displayphoto-shrink_100_100/0/1705871943418?e=1727308800&v=beta&t=4AaC8Cuhn5mLOLgBKWXi4dkZFA6gfv_CXMxy4kBdVpM",
+
+                    }).then(() => {
+                        const { uid, email, displayName, photoURL } = user;
+                        dispatch(addUser({ uid: uid, email: email, displayName: displayName, photoURL: photoURL }));
+                        navigate("/browse")
+                    }).catch((error) => {
+                        setErrorMessage(error.message)
+                    });
+
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    setErrorMessage(errorCode + " " + errorMessage)
+
+
+                });
+
+
+        }
+
+        else {
+
+            signInWithEmailAndPassword(auth, emailValue, passwordValue)
+                .then((userCredential) => {
+                    // Signed in 
+                    const user = userCredential.user;
+                    console.log(user)
+                    navigate("/browse")
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    { errorCode == 'auth/invalid-credential' ? setErrorMessage('User does not exist') : setErrorMessage(errorCode + " " + errorMessage) }
+                    navigate("/")
+                });
+        }
+
+    }
+
+
+
     return (
         <>
             <Header />
@@ -14,16 +88,17 @@ const Login = () => {
             </div>
 
             <div className='container mx-auto my-36 absolute'>
-                <form className='bg-black w-4/12 p-12 bg-opacity-80 rounded-sm mx-auto'>
+                <form onSubmit={(e) => e.preventDefault()} className='bg-black w-4/12 p-12 bg-opacity-80 rounded-sm mx-auto'>
 
                     <h1 className='text-3xl font-bold text-white mb-4'>{isSignInForm ? 'Sign In' : 'Sign Up'}</h1>
-                    {!isSignInForm ? (<input className='bg-gray-700 w-full px-4 py-3  mb-4 opacity-65 rounded-sm text-white placeholder-white' type='text' placeholder='Full Name' />)
+                    {!isSignInForm ? (<input ref={name} className='bg-gray-700 w-full px-4 py-3  mb-4 opacity-65 rounded-sm text-white placeholder-white' type='text' placeholder='Full Name' />)
                         : null
 
                     }
-                    <input className='bg-gray-700 w-full px-4 py-3  mb-4 opacity-65 rounded-sm placeholder-white text-white' type='text' placeholder='Email' />
-                    <input className='bg-gray-700 w-full px-4 py-3 mb-4 opacity-70 rounded-sm placeholder-white' type='password' placeholder='Password' />
-                    <button className='bg-red-700 w-full px-4 py-2 mt-6 text-white rounded-sm'>{isSignInForm ? 'Sign In' : 'Sign Up'}</button>
+                    <input ref={email} className='bg-gray-700 w-full px-4 py-3  mb-4 opacity-65 rounded-sm placeholder-white text-white' type='text' placeholder='Email' />
+                    <input ref={password} className='bg-gray-700 w-full px-4 py-3 mb-4 opacity-70 rounded-sm placeholder-white' type='password' placeholder='Password' />
+                    <button onClick={handleBtnClick} className='bg-red-700 w-full px-4 py-2 mt-6 text-white rounded-sm'>{isSignInForm ? 'Sign In' : 'Sign Up'}</button>
+                    {errorMessage && <p className='text-red-700 mt-2'>{errorMessage}</p>}
                     <p className='text-white mt-4 cursor-pointer' onClick={toggleInForm}>New to Netflix? Sign up now</p>
                 </form>
             </div>
