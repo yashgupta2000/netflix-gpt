@@ -6,13 +6,13 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfi
 import { useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux';
 import { addUser } from '../utils/userSlice';
+import { LOGO } from '../utils/constant';
 
 
 const Login = () => {
     const [isSignInForm, setIsSignInForem] = useState(true);
     const [errorMessage, setErrorMessage] = useState();
 
-    const navigate = useNavigate();
     const dispatch = useDispatch();
 
     const toggleInForm = () => {
@@ -36,13 +36,14 @@ const Login = () => {
                 .then((userCredential) => {
                     // Signed up 
                     const user = userCredential.user;
-                    updateProfile(user, {
-                        displayName: nameValue, photoURL: "https://media.licdn.com/dms/image/D5603AQFMNzatN4oA0Q/profile-displayphoto-shrink_100_100/0/1705871943418?e=1727308800&v=beta&t=4AaC8Cuhn5mLOLgBKWXi4dkZFA6gfv_CXMxy4kBdVpM",
 
+                    updateProfile(user, {
+                        displayName: nameValue,
+                        photoURL: LOGO
                     }).then(() => {
                         const { uid, email, displayName, photoURL } = user;
+                        console.log(uid);
                         dispatch(addUser({ uid: uid, email: email, displayName: displayName, photoURL: photoURL }));
-                        navigate("/browse")
                     }).catch((error) => {
                         setErrorMessage(error.message)
                     });
@@ -52,11 +53,7 @@ const Login = () => {
                     const errorCode = error.code;
                     const errorMessage = error.message;
                     setErrorMessage(errorCode + " " + errorMessage)
-
-
                 });
-
-
         }
 
         else {
@@ -65,14 +62,11 @@ const Login = () => {
                 .then((userCredential) => {
                     // Signed in 
                     const user = userCredential.user;
-                    console.log(user)
-                    navigate("/browse")
                 })
                 .catch((error) => {
                     const errorCode = error.code;
                     const errorMessage = error.message;
-                    { errorCode == 'auth/invalid-credential' ? setErrorMessage('User does not exist') : setErrorMessage(errorCode + " " + errorMessage) }
-                    navigate("/")
+                    setErrorMessage(errorCode + " " + errorMessage)
                 });
         }
 
